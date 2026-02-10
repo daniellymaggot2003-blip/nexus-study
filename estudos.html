@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Study - Pro Dash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --accent: #00d2d3;
+            --danger: #ff7675;
+            --success: #55efc4;
+            --glass: rgba(255, 255, 255, 0.9);
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #2d3436;
+        }
+
+        .container { max-width: 1000px; margin: auto; }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            background: var(--glass);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-add-main { background: var(--primary); color: white; }
+        .btn-play { background: var(--success); color: white; }
+        .btn-pause { background: var(--danger); color: white; }
+        .btn-delete { background: #dfe6e9; color: #ff7675; padding: 8px; }
+        .btn-delete:hover { background: #ff7675; color: white; }
+
+        .card-materia {
+            background: var(--glass);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header-materia {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .item-estudo {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-left: 5px solid #dfe6e9;
+        }
+
+        .item-info { flex: 1; }
+
+        .item-estudo.active { border-left-color: var(--success); background: #f0fffb; }
+
+        .timer-display {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: #eee;
+            padding: 5px 10px;
+            border-radius: 8px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .mural {
+            background: rgba(45, 52, 54, 0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-top: 50px;
+        }
+
+        .mural-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #3d3d3d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 Nexus Study Pro</h1>
+    <div class="input-group">
+        <input type="text" id="novaMateria" placeholder="Qual matéria vamos conquistar hoje?">
+        <button class="btn-add-main" onclick="addMateria()">+ Criar Matéria</button>
+    </div>
+    <div id="app">Carregando Nexus...</div>
+    <div class="mural">
+        <h2>📊 Mural de Performance</h2>
+        <div id="muralStats"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPYTsZYMbp5HEvD-19is-cAguWGfOE8FY",
+        authDomain: "estudo-nexus.firebaseapp.com",
+        projectId: "estudo-nexus",
+        storageBucket: "estudo-nexus.firebasestorage.app",
+        messagingSenderId: "594949878863",
+        appId: "1:594949878863:web:b4bdf2170785b1b31be63a",
+        measurementId: "G-FYQ1ENZRS5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const materiasRef = collection(db, "materias");
+
+    let dados = [];
+    let intervaloLocal = null;
+    let itemAtivo = null;
+
+    // --- FUNÇÕES DE EXCLUSÃO ---
+
+    window.deleteMateria = async (materiaId) => {
+        if(confirm("Tem certeza que deseja apagar toda esta matéria?")) {
+            if(itemAtivo && itemAtivo.materiaId === materiaId) pararContadorLocal();
+            await deleteDoc(doc(db, "materias", materiaId));
+        }
+    };
+
+    window.deleteItem = async (materiaId, itemId) => {
+        if(confirm("Deseja apagar esta aula?")) {
+            const materia = dados.find(m => m.id === materiaId);
+            const novosItens = materia.itens.filter(i => i.id !== itemId);
+            
+            if(itemAtivo && itemAtivo.itemId === itemId) {
+                pararContadorLocal();
+                itemAtivo = null;
+            }
+            
+            await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+        }
+    };
+
+    // --- FUNÇÕES CORE ---
+
+    window.addMateria = async () => {
+        const input = document.querySelector('#novaMateria');
+        if(!input.value) return;
+        await addDoc(materiasRef, { nome: input.value, itens: [] });
+        input.value = '';
+    };
+
+    window.addItem = async (materiaId) => {
+        const nomeItem = prompt("Nome da Aula/Atividade:");
+        if(!nomeItem) return;
+        const materia = dados.find(m => m.id === materiaId);
+        const novosItens = [...materia.itens, {
+            id: Date.now().toString(),
+            nome: nomeItem,
+            segundos: 0,
+            rodando: false
+        }];
+        await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+    };
+
+    window.toggleTimer = async (materiaId, itemId) => {
+        const materiaIndex = dados.findIndex(m => m.id === materiaId);
+        const itemIndex = dados[materiaIndex].itens.findIndex(i => i.id === itemId);
+        const item = dados[materiaIndex].itens[itemIndex];
+
+        if (itemAtivo && itemAtivo.itemId === itemId) {
+            pararContadorLocal();
+            item.rodando = false;
+            await salvarNoFirebase(materiaId, dados[materiaIndex].itens);
+            itemAtivo = null;
+        } 
+        else {
+            if (itemAtivo) {
+                const mIdxAntigo = dados.findIndex(m => m.id === itemAtivo.materiaId);
+                if(mIdxAntigo !== -1) {
+                    dados[mIdxAntigo].itens.forEach(i => i.rodando = false);
+                    await salvarNoFirebase(itemAtivo.materiaId, dados[mIdxAntigo].itens);
+                }
+                pararContadorLocal();
+            }
+
+            item.rodando = true;
+            itemAtivo = { materiaId, itemId };
+            iniciarContadorLocal(materiaId, itemId);
+            await salvarNoFirebase(materiaId, dados[materiaIndex].itens);
+        }
+        render();
+    };
+
+    function iniciarContadorLocal(materiaId, itemId) {
+        pararContadorLocal();
+        intervaloLocal = setInterval(() => {
+            const materia = dados.find(m => m.id === materiaId);
+            const item = materia.itens.find(i => i.id === itemId);
+            if (item) {
+                item.segundos++;
+                render();
+            }
+        }, 1000);
+    }
+
+    function pararContadorLocal() {
+        if (intervaloLocal) clearInterval(intervaloLocal);
+    }
+
+    async function salvarNoFirebase(materiaId, itens) {
+        const docRef = doc(db, "materias", materiaId);
+        await updateDoc(docRef, { itens: itens });
+    }
+
+    // --- RENDERIZAÇÃO ---
+
+    function formatar(s) {
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    function render() {
+        const appDiv = document.getElementById('app');
+        const mural = document.getElementById('muralStats');
+        appDiv.innerHTML = '';
+        let muralHTML = '';
+
+        dados.forEach(materia => {
+            let tempoMateria = 0;
+            let itensHTML = materia.itens.map(item => {
+                tempoMateria += item.segundos;
+                return `
+                    <div class="item-estudo ${item.rodando ? 'active' : ''}">
+                        <div class="item-info"><strong>${item.nome}</strong></div>
+                        <div class="timer-display">${formatar(item.segundos)}</div>
+                        <button class="${item.rodando ? 'btn-pause' : 'btn-play'}" 
+                                onclick="toggleTimer('${materia.id}', '${item.id}')">
+                            ${item.rodando ? '⏸' : '▶'}
+                        </button>
+                        <button class="btn-delete" onclick="deleteItem('${materia.id}', '${item.id}')">🗑</button>
+                    </div>`;
+            }).join('');
+
+            appDiv.innerHTML += `
+                <div class="card-materia">
+                    <div class="header-materia">
+                        <h2>${materia.nome}</h2>
+                        <div class="header-actions">
+                            <button class="btn-add-main" onclick="addItem('${materia.id}')">+ Aula</button>
+                            <button class="btn-delete" onclick="deleteMateria('${materia.id}')" title="Apagar Matéria">🗑</button>
+                        </div>
+                    </div>
+                    ${itensHTML || '<p style="text-align:center; opacity:0.6">Nenhuma aula cadastrada.</p>'}
+                </div>`;
+
+            muralHTML += `<div class="mural-item"><span>${materia.nome}</span><strong>${formatar(tempoMateria)}</strong></div>`;
+        });
+        mural.innerHTML = muralHTML || "Adicione matérias para ver estatísticas.";
+    }
+
+    onSnapshot(materiasRef, (snapshot) => {
+        const novosDados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (itemAtivo) {
+            novosDados.forEach(mNew => {
+                mNew.itens.forEach(iNew => {
+                    if(itemAtivo && iNew.id === itemAtivo.itemId) {
+                        const localAtivo = dados.find(m => m.id === itemAtivo.materiaId)?.itens.find(i => i.id === itemAtivo.itemId);
+                        if(localAtivo) iNew.segundos = localAtivo.segundos;
+                    }
+                });
+            });
+        }
+        dados = novosDados;
+        render();
+    });
+</script>
+</body>
+</html>
