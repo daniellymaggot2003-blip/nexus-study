@@ -3,149 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Study - Pro Dash</title>
+    <title>Nexus Study - Ultra Dash</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #6c5ce7;
-            --secondary: #a29bfe;
             --accent: #00d2d3;
             --danger: #ff7675;
             --success: #55efc4;
-            --glass: rgba(255, 255, 255, 0.9);
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --warning: #f1c40f;
+            --glass: rgba(255, 255, 255, 0.12);
+            --glass-heavy: rgba(255, 255, 255, 0.25);
+            --text-light: #f8f9fa;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
 
         body {
-            background: var(--bg-gradient);
+            background: radial-gradient(circle at top right, #2d3436, #000000);
             min-height: 100vh;
             padding: 40px 20px;
-            color: #2d3436;
+            color: var(--text-light);
+            overflow-x: hidden;
         }
 
-        .container { max-width: 1000px; margin: auto; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container { 
+            max-width: 1100px; 
+            margin: auto; 
+            animation: fadeIn 0.8s ease-out;
+        }
 
         h1 {
-            color: white;
             text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 30px;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-size: 3rem;
+            margin-bottom: 40px;
+            background: linear-gradient(to right, #a29bfe, #00d2d3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 15px;
             background: var(--glass);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 40px;
-            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 24px;
+            margin-bottom: 50px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
-        input {
+        input, textarea {
             flex: 1;
-            padding: 12px 20px;
-            border: 2px solid transparent;
-            border-radius: 10px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 15px;
             outline: none;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            transition: 0.3s;
         }
+
+        input:focus, textarea:focus { background: rgba(255,255,255,0.15); }
 
         button {
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 10px;
+            border-radius: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
         }
 
+        button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
         .btn-add-main { background: var(--primary); color: white; }
-        .btn-play { background: var(--success); color: white; }
+        .btn-play { background: var(--success); color: #1e272e; }
         .btn-pause { background: var(--danger); color: white; }
-        .btn-delete { background: #dfe6e9; color: #ff7675; padding: 8px; }
-        .btn-delete:hover { background: #ff7675; color: white; }
+        .btn-reset { background: var(--warning); color: #1e272e; }
+        .btn-reset:active { transform: rotate(-10deg) scale(0.9); }
 
         .card-materia {
             background: var(--glass);
-            border-radius: 20px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 30px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.4s;
         }
 
         .header-materia {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
-
-        .header-actions { display: flex; gap: 10px; }
 
         .item-estudo {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            border-left: 5px solid #dfe6e9;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #636e72;
+            transition: 0.3s;
         }
-
-        .item-info { flex: 1; }
 
         .item-estudo.active { 
             border-left-color: var(--success); 
-            background: #f0fffb; 
-            animation: pulse 2s infinite;
+            background: rgba(85, 239, 196, 0.1);
+            transform: scale(1.01);
         }
 
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(85, 239, 196, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(85, 239, 196, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(85, 239, 196, 0); }
-        }
+        .flex-row { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
 
         .timer-display {
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             font-weight: 700;
-            font-size: 1.1rem;
-            background: #eee;
-            padding: 5px 10px;
-            border-radius: 8px;
-            min-width: 90px;
-            text-align: center;
+            font-size: 1.3rem;
+            color: var(--accent);
+            min-width: 100px;
         }
+
+        .extra-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .extra-box textarea { font-size: 0.85rem; height: 80px; resize: none; }
 
         .mural {
-            background: rgba(45, 52, 54, 0.9);
-            color: white;
-            padding: 30px;
-            border-radius: 20px;
-            margin-top: 50px;
+            background: var(--glass-heavy);
+            padding: 40px;
+            border-radius: 30px;
+            margin-top: 60px;
+            backdrop-filter: blur(20px);
         }
 
-        .mural-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #3d3d3d; }
+        .mural-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn-save-note {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.75rem;
+            padding: 8px 15px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🚀 Nexus Study Pro</h1>
+    <h1>✨ Nexus Study Pro</h1>
+    
     <div class="input-group">
-        <input type="text" id="novaMateria" placeholder="Qual matéria vamos conquistar hoje?">
-        <button class="btn-add-main" id="btnCriarMateria">+ Criar Matéria</button>
+        <input type="text" id="novaMateria" placeholder="Qual será seu próximo domínio?">
+        <button class="btn-add-main" id="btnCriarMateria">🚀 Criar Jornada</button>
     </div>
-    <div id="app">Carregando Nexus...</div>
+
+    <div id="app">Carregando dimensões...</div>
+
     <div class="mural">
-        <h2>📊 Mural de Performance</h2>
+        <h2>📊 Estatísticas Galácticas</h2>
         <div id="muralStats"></div>
     </div>
 </div>
@@ -170,9 +206,7 @@
 
     let dados = [];
     let intervaloLocal = null;
-    let itemAtivo = null; // { materiaId, itemId, segundos }
-
-    // --- FUNÇÕES DE INTERFACE ---
+    let itemAtivo = null;
 
     function formatar(s) {
         const h = Math.floor(s / 3600);
@@ -181,77 +215,78 @@
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
 
-    // Vincular funções ao window para que o HTML as encontre
     window.addMateria = async () => {
         const input = document.querySelector('#novaMateria');
         if(!input.value) return;
-        try {
-            await addDoc(materiasRef, { nome: input.value, itens: [] });
-            input.value = '';
-        } catch (e) { console.error("Erro ao adicionar:", e); }
+        await addDoc(materiasRef, { nome: input.value, itens: [] });
+        input.value = '';
     };
 
     document.getElementById('btnCriarMateria').addEventListener('click', window.addMateria);
 
     window.addItem = async (materiaId) => {
-        const nomeItem = prompt("Nome da Aula/Atividade:");
+        const nomeItem = prompt("Nome da Atividade:");
         if(!nomeItem) return;
         const materia = dados.find(m => m.id === materiaId);
         const novosItens = [...materia.itens, {
             id: Date.now().toString(),
             nome: nomeItem,
-            segundos: 0
+            segundos: 0,
+            comentario: "",
+            anotacao: ""
         }];
         await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
     };
 
-    window.deleteMateria = async (materiaId) => {
-        if(confirm("Apagar matéria completa?")) {
-            if(itemAtivo?.materiaId === materiaId) window.pararContador();
-            await deleteDoc(doc(db, "materias", materiaId));
+    window.resetTimer = async (materiaId, itemId) => {
+        if(confirm("Deseja zerar o tempo desta aula? Esta ação não pode ser desfeita.")) {
+            if(itemAtivo && itemAtivo.itemId === itemId) {
+                itemAtivo.segundos = 0;
+                document.getElementById(`timer-${itemId}`).innerText = "00:00:00";
+            }
+            const materia = dados.find(m => m.id === materiaId);
+            const novosItens = materia.itens.map(i => {
+                if(i.id === itemId) return { ...i, segundos: 0 };
+                return i;
+            });
+            await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+            if(!itemAtivo) render();
         }
     };
 
-    window.deleteItem = async (materiaId, itemId) => {
-        if(confirm("Apagar esta aula?")) {
-            const materia = dados.find(m => m.id === materiaId);
-            const novosItens = materia.itens.filter(i => i.id !== itemId);
-            if(itemAtivo?.itemId === itemId) window.pararContador();
-            await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
-        }
+    window.saveExtra = async (materiaId, itemId) => {
+        const comentario = document.getElementById(`coment-${itemId}`).value;
+        const anotacao = document.getElementById(`note-${itemId}`).value;
+        const materia = dados.find(m => m.id === materiaId);
+        const novosItens = materia.itens.map(i => {
+            if(i.id === itemId) return { ...i, comentario, anotacao };
+            return i;
+        });
+        await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+        alert("Sincronizado com a nuvem!");
     };
 
     window.toggleTimer = async (materiaId, itemId) => {
-        // Se clicar no que já está rodando -> PAUSA
         if (itemAtivo && itemAtivo.itemId === itemId) {
             const mId = itemAtivo.materiaId;
             const iId = itemAtivo.itemId;
             const seg = itemAtivo.segundos;
-
             window.pararContador();
             await atualizarBanco(mId, iId, seg);
-        } 
-        // Se clicar em um novo
-        else {
-            // Se já tinha outro rodando, para e salva o anterior primeiro
+        } else {
             if (itemAtivo) {
                 await atualizarBanco(itemAtivo.materiaId, itemAtivo.itemId, itemAtivo.segundos);
                 window.pararContador();
             }
-
-            // Inicia o novo
             const materia = dados.find(m => m.id === materiaId);
             const item = materia.itens.find(i => i.id === itemId);
-            
             itemAtivo = { materiaId, itemId, segundos: item.segundos };
-            
             intervaloLocal = setInterval(() => {
                 itemAtivo.segundos++;
                 const el = document.getElementById(`timer-${itemId}`);
                 if(el) el.innerText = formatar(itemAtivo.segundos);
                 atualizarMuralRapido();
             }, 1000);
-            
             render(); 
         }
     };
@@ -278,7 +313,6 @@
         let html = '';
         dados.forEach(m => {
             let total = m.itens.reduce((acc, curr) => {
-                // Se for o item ativo, usa o tempo do cronômetro local
                 if(itemAtivo && curr.id === itemAtivo.itemId) return acc + itemAtivo.segundos;
                 return acc + curr.segundos;
             }, 0);
@@ -287,6 +321,15 @@
         mural.innerHTML = html;
     }
 
+    window.deleteMateria = async (id) => confirm("Apagar matéria?") && await deleteDoc(doc(db, "materias", id));
+
+    window.deleteItem = async (mId, iId) => {
+        if(confirm("Remover aula?")) {
+            const m = dados.find(x => x.id === mId);
+            await updateDoc(doc(db, "materias", mId), { itens: m.itens.filter(i => i.id !== iId) });
+        }
+    };
+
     function render() {
         const appDiv = document.getElementById('app');
         appDiv.innerHTML = '';
@@ -294,17 +337,28 @@
         dados.forEach(materia => {
             let itensHTML = materia.itens.map(item => {
                 const isAtivo = itemAtivo?.itemId === item.id;
-                const tempoExibir = isAtivo ? itemAtivo.segundos : item.segundos;
-                
                 return `
                     <div class="item-estudo ${isAtivo ? 'active' : ''}">
-                        <div class="item-info"><strong>${item.nome}</strong></div>
-                        <div class="timer-display" id="timer-${item.id}">${formatar(tempoExibir)}</div>
-                        <button class="${isAtivo ? 'btn-pause' : 'btn-play'}" 
-                                onclick="toggleTimer('${materia.id}', '${item.id}')">
-                            ${isAtivo ? '⏸' : '▶'}
-                        </button>
-                        <button class="btn-delete" onclick="deleteItem('${materia.id}', '${item.id}')">🗑</button>
+                        <div class="flex-row">
+                            <div style="flex:1"><strong>${item.nome}</strong></div>
+                            <div class="timer-display" id="timer-${item.id}">${formatar(isAtivo ? itemAtivo.segundos : item.segundos)}</div>
+                            
+                            <button class="${isAtivo ? 'btn-pause' : 'btn-play'}" onclick="toggleTimer('${materia.id}', '${item.id}')">
+                                ${isAtivo ? '⏸' : '▶'}
+                            </button>
+                            
+                            <button class="btn-reset" title="Zerar Tempo" onclick="resetTimer('${materia.id}', '${item.id}')">
+                                🔄
+                            </button>
+                            
+                            <button onclick="deleteItem('${materia.id}', '${item.id}')" style="background:none; color:var(--danger)">🗑</button>
+                        </div>
+                        
+                        <div class="extra-box">
+                            <textarea id="coment-${item.id}" placeholder="Como foi essa aula?">${item.comentario || ''}</textarea>
+                            <textarea id="note-${item.id}" placeholder="Principais tópicos...">${item.anotacao || ''}</textarea>
+                        </div>
+                        <button class="btn-save-note" onclick="saveExtra('${materia.id}', '${item.id}')">💾 Sincronizar Notas</button>
                     </div>`;
             }).join('');
 
@@ -312,22 +366,19 @@
                 <div class="card-materia">
                     <div class="header-materia">
                         <h2>${materia.nome}</h2>
-                        <div class="header-actions">
+                        <div style="display:flex; gap:10px">
                             <button class="btn-add-main" onclick="addItem('${materia.id}')">+ Aula</button>
-                            <button class="btn-delete" onclick="deleteMateria('${materia.id}')">🗑</button>
+                            <button onclick="deleteMateria('${materia.id}')" style="background:none; color:white; opacity:0.5">🗑</button>
                         </div>
                     </div>
-                    ${itensHTML || '<p style="text-align:center; opacity:0.6">Nenhuma aula cadastrada.</p>'}
+                    ${itensHTML || '<p style="text-align:center; opacity:0.4">Adicione uma aula para começar.</p>'}
                 </div>`;
         });
         atualizarMuralRapido();
     }
 
-    // LISTENER EM TEMPO REAL
     onSnapshot(materiasRef, (snapshot) => {
-        const novosDados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        dados = novosDados;
-        // Se não houver nada rodando localmente, redesenha tudo
+        dados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(!itemAtivo) render();
     });
 </script>
