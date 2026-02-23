@@ -101,7 +101,17 @@
 
         .item-info { flex: 1; }
 
-        .item-estudo.active { border-left-color: var(--success); background: #f0fffb; }
+        .item-estudo.active { 
+            border-left-color: var(--success); 
+            background: #f0fffb; 
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(85, 239, 196, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(85, 239, 196, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(85, 239, 196, 0); }
+        }
 
         .timer-display {
             font-family: monospace;
@@ -131,7 +141,7 @@
     <h1>🚀 Nexus Study Pro</h1>
     <div class="input-group">
         <input type="text" id="novaMateria" placeholder="Qual matéria vamos conquistar hoje?">
-        <button class="btn-add-main" onclick="addMateria()">+ Criar Matéria</button>
+        <button class="btn-add-main" id="btnCriarMateria">+ Criar Matéria</button>
     </div>
     <div id="app">Carregando Nexus...</div>
     <div class="mural">
@@ -154,110 +164,15 @@
         measurementId: "G-FYQ1ENZRS5"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
     const materiasRef = collection(db, "materias");
 
     let dados = [];
     let intervaloLocal = null;
-    let itemAtivo = null;
+    let itemAtivo = null; // { materiaId, itemId, segundos }
 
-    // --- FUNÇÕES DE EXCLUSÃO ---
-
-    window.deleteMateria = async (materiaId) => {
-        if(confirm("Tem certeza que deseja apagar toda esta matéria?")) {
-            if(itemAtivo && itemAtivo.materiaId === materiaId) pararContadorLocal();
-            await deleteDoc(doc(db, "materias", materiaId));
-        }
-    };
-
-    window.deleteItem = async (materiaId, itemId) => {
-        if(confirm("Deseja apagar esta aula?")) {
-            const materia = dados.find(m => m.id === materiaId);
-            const novosItens = materia.itens.filter(i => i.id !== itemId);
-            
-            if(itemAtivo && itemAtivo.itemId === itemId) {
-                pararContadorLocal();
-                itemAtivo = null;
-            }
-            
-            await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
-        }
-    };
-
-    // --- FUNÇÕES CORE ---
-
-    window.addMateria = async () => {
-        const input = document.querySelector('#novaMateria');
-        if(!input.value) return;
-        await addDoc(materiasRef, { nome: input.value, itens: [] });
-        input.value = '';
-    };
-
-    window.addItem = async (materiaId) => {
-        const nomeItem = prompt("Nome da Aula/Atividade:");
-        if(!nomeItem) return;
-        const materia = dados.find(m => m.id === materiaId);
-        const novosItens = [...materia.itens, {
-            id: Date.now().toString(),
-            nome: nomeItem,
-            segundos: 0,
-            rodando: false
-        }];
-        await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
-    };
-
-    window.toggleTimer = async (materiaId, itemId) => {
-        const materiaIndex = dados.findIndex(m => m.id === materiaId);
-        const itemIndex = dados[materiaIndex].itens.findIndex(i => i.id === itemId);
-        const item = dados[materiaIndex].itens[itemIndex];
-
-        if (itemAtivo && itemAtivo.itemId === itemId) {
-            pararContadorLocal();
-            item.rodando = false;
-            await salvarNoFirebase(materiaId, dados[materiaIndex].itens);
-            itemAtivo = null;
-        } 
-        else {
-            if (itemAtivo) {
-                const mIdxAntigo = dados.findIndex(m => m.id === itemAtivo.materiaId);
-                if(mIdxAntigo !== -1) {
-                    dados[mIdxAntigo].itens.forEach(i => i.rodando = false);
-                    await salvarNoFirebase(itemAtivo.materiaId, dados[mIdxAntigo].itens);
-                }
-                pararContadorLocal();
-            }
-
-            item.rodando = true;
-            itemAtivo = { materiaId, itemId };
-            iniciarContadorLocal(materiaId, itemId);
-            await salvarNoFirebase(materiaId, dados[materiaIndex].itens);
-        }
-        render();
-    };
-
-    function iniciarContadorLocal(materiaId, itemId) {
-        pararContadorLocal();
-        intervaloLocal = setInterval(() => {
-            const materia = dados.find(m => m.id === materiaId);
-            const item = materia.itens.find(i => i.id === itemId);
-            if (item) {
-                item.segundos++;
-                render();
-            }
-        }, 1000);
-    }
-
-    function pararContadorLocal() {
-        if (intervaloLocal) clearInterval(intervaloLocal);
-    }
-
-    async function salvarNoFirebase(materiaId, itens) {
-        const docRef = doc(db, "materias", materiaId);
-        await updateDoc(docRef, { itens: itens });
-    }
-
-    // --- RENDERIZAÇÃO ---
+    // --- FUNÇÕES DE INTERFACE ---
 
     function formatar(s) {
         const h = Math.floor(s / 3600);
@@ -266,23 +181,128 @@
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
 
+    // Vincular funções ao window para que o HTML as encontre
+    window.addMateria = async () => {
+        const input = document.querySelector('#novaMateria');
+        if(!input.value) return;
+        try {
+            await addDoc(materiasRef, { nome: input.value, itens: [] });
+            input.value = '';
+        } catch (e) { console.error("Erro ao adicionar:", e); }
+    };
+
+    document.getElementById('btnCriarMateria').addEventListener('click', window.addMateria);
+
+    window.addItem = async (materiaId) => {
+        const nomeItem = prompt("Nome da Aula/Atividade:");
+        if(!nomeItem) return;
+        const materia = dados.find(m => m.id === materiaId);
+        const novosItens = [...materia.itens, {
+            id: Date.now().toString(),
+            nome: nomeItem,
+            segundos: 0
+        }];
+        await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+    };
+
+    window.deleteMateria = async (materiaId) => {
+        if(confirm("Apagar matéria completa?")) {
+            if(itemAtivo?.materiaId === materiaId) window.pararContador();
+            await deleteDoc(doc(db, "materias", materiaId));
+        }
+    };
+
+    window.deleteItem = async (materiaId, itemId) => {
+        if(confirm("Apagar esta aula?")) {
+            const materia = dados.find(m => m.id === materiaId);
+            const novosItens = materia.itens.filter(i => i.id !== itemId);
+            if(itemAtivo?.itemId === itemId) window.pararContador();
+            await updateDoc(doc(db, "materias", materiaId), { itens: novosItens });
+        }
+    };
+
+    window.toggleTimer = async (materiaId, itemId) => {
+        // Se clicar no que já está rodando -> PAUSA
+        if (itemAtivo && itemAtivo.itemId === itemId) {
+            const mId = itemAtivo.materiaId;
+            const iId = itemAtivo.itemId;
+            const seg = itemAtivo.segundos;
+
+            window.pararContador();
+            await atualizarBanco(mId, iId, seg);
+        } 
+        // Se clicar em um novo
+        else {
+            // Se já tinha outro rodando, para e salva o anterior primeiro
+            if (itemAtivo) {
+                await atualizarBanco(itemAtivo.materiaId, itemAtivo.itemId, itemAtivo.segundos);
+                window.pararContador();
+            }
+
+            // Inicia o novo
+            const materia = dados.find(m => m.id === materiaId);
+            const item = materia.itens.find(i => i.id === itemId);
+            
+            itemAtivo = { materiaId, itemId, segundos: item.segundos };
+            
+            intervaloLocal = setInterval(() => {
+                itemAtivo.segundos++;
+                const el = document.getElementById(`timer-${itemId}`);
+                if(el) el.innerText = formatar(itemAtivo.segundos);
+                atualizarMuralRapido();
+            }, 1000);
+            
+            render(); 
+        }
+    };
+
+    window.pararContador = () => {
+        if (intervaloLocal) clearInterval(intervaloLocal);
+        intervaloLocal = null;
+        itemAtivo = null;
+        render();
+    };
+
+    async function atualizarBanco(mId, iId, seg) {
+        const materia = dados.find(m => m.id === mId);
+        if(!materia) return;
+        const novosItens = materia.itens.map(i => {
+            if(i.id === iId) return { ...i, segundos: seg };
+            return i;
+        });
+        await updateDoc(doc(db, "materias", mId), { itens: novosItens });
+    }
+
+    function atualizarMuralRapido() {
+        const mural = document.getElementById('muralStats');
+        let html = '';
+        dados.forEach(m => {
+            let total = m.itens.reduce((acc, curr) => {
+                // Se for o item ativo, usa o tempo do cronômetro local
+                if(itemAtivo && curr.id === itemAtivo.itemId) return acc + itemAtivo.segundos;
+                return acc + curr.segundos;
+            }, 0);
+            html += `<div class="mural-item"><span>${m.nome}</span><strong>${formatar(total)}</strong></div>`;
+        });
+        mural.innerHTML = html;
+    }
+
     function render() {
         const appDiv = document.getElementById('app');
-        const mural = document.getElementById('muralStats');
         appDiv.innerHTML = '';
-        let muralHTML = '';
 
         dados.forEach(materia => {
-            let tempoMateria = 0;
             let itensHTML = materia.itens.map(item => {
-                tempoMateria += item.segundos;
+                const isAtivo = itemAtivo?.itemId === item.id;
+                const tempoExibir = isAtivo ? itemAtivo.segundos : item.segundos;
+                
                 return `
-                    <div class="item-estudo ${item.rodando ? 'active' : ''}">
+                    <div class="item-estudo ${isAtivo ? 'active' : ''}">
                         <div class="item-info"><strong>${item.nome}</strong></div>
-                        <div class="timer-display">${formatar(item.segundos)}</div>
-                        <button class="${item.rodando ? 'btn-pause' : 'btn-play'}" 
+                        <div class="timer-display" id="timer-${item.id}">${formatar(tempoExibir)}</div>
+                        <button class="${isAtivo ? 'btn-pause' : 'btn-play'}" 
                                 onclick="toggleTimer('${materia.id}', '${item.id}')">
-                            ${item.rodando ? '⏸' : '▶'}
+                            ${isAtivo ? '⏸' : '▶'}
                         </button>
                         <button class="btn-delete" onclick="deleteItem('${materia.id}', '${item.id}')">🗑</button>
                     </div>`;
@@ -294,34 +314,22 @@
                         <h2>${materia.nome}</h2>
                         <div class="header-actions">
                             <button class="btn-add-main" onclick="addItem('${materia.id}')">+ Aula</button>
-                            <button class="btn-delete" onclick="deleteMateria('${materia.id}')" title="Apagar Matéria">🗑</button>
+                            <button class="btn-delete" onclick="deleteMateria('${materia.id}')">🗑</button>
                         </div>
                     </div>
                     ${itensHTML || '<p style="text-align:center; opacity:0.6">Nenhuma aula cadastrada.</p>'}
                 </div>`;
-
-            muralHTML += `<div class="mural-item"><span>${materia.nome}</span><strong>${formatar(tempoMateria)}</strong></div>`;
         });
-        mural.innerHTML = muralHTML || "Adicione matérias para ver estatísticas.";
+        atualizarMuralRapido();
     }
 
+    // LISTENER EM TEMPO REAL
     onSnapshot(materiasRef, (snapshot) => {
         const novosDados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (itemAtivo) {
-            novosDados.forEach(mNew => {
-                mNew.itens.forEach(iNew => {
-                    if(itemAtivo && iNew.id === itemAtivo.itemId) {
-                        const localAtivo = dados.find(m => m.id === itemAtivo.materiaId)?.itens.find(i => i.id === itemAtivo.itemId);
-                        if(localAtivo) iNew.segundos = localAtivo.segundos;
-                    }
-                });
-            });
-        }
         dados = novosDados;
-        render();
+        // Se não houver nada rodando localmente, redesenha tudo
+        if(!itemAtivo) render();
     });
 </script>
 </body>
-
-</html> 
-
+</html>
